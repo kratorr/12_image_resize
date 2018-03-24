@@ -43,7 +43,6 @@ def get_new_file_name_with_ext(input_name, size):
 if __name__ == "__main__":
     arg_parser = create_parser()
     arg_namespace = arg_parser.parse_args()
-
     try:
         input_image = Image.open(arg_namespace.input_file)
     except FileNotFoundError:
@@ -54,6 +53,11 @@ if __name__ == "__main__":
             input_image, arg_namespace.scale
         )
     elif arg_namespace.height and arg_namespace.width:
+        input_width, input_height = input_image.size
+        coefficient_width = arg_namespace.width / input_width
+        coefficient_height = arg_namespace.height / input_height
+        if coefficient_width != coefficient_height:
+            print("Aspect ratio does not match the original image")
         resized_image, new_size = resize_image_with_two_side(
             input_image, arg_namespace.width, arg_namespace.height
         )
@@ -64,20 +68,13 @@ if __name__ == "__main__":
         )
     else:
         print("Not enough arguments")
-
     if arg_namespace.output_file:
         try:
             resized_image.save(arg_namespace.output_file)
-        except KeyError:
-            exit("Input output filename with extansion")
+        except ValueError:
+            exit("The file extension is not specified")
     else:
         new_file_name = str(get_new_file_name_with_ext(
             arg_namespace.input_file, new_size)
         )
         resized_image.save(new_file_name, format=None)
-
-
-    #resized_image.save(path)
-    #coefficient_width = new_width / image_width
-    #coefficient_height = new_height / image_height
-
