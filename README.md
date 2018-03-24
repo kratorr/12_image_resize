@@ -12,11 +12,11 @@ Remember, it is recommended to use virtualenv/venv for better isolation.
 
 # Quickstart
 
-The program must be run using the console, required argument is path to image.
+The program must be run using the console, required argument is path to image. If you do not specify a path to the output file, the file will be created in the same directory.
 
 How to run:
 ```bash
-$ python3 image_resize.py --scale 2 img.jpg resized.jpg
+$ python3 image_resize.py --scale 2 image_file resied_file
 ```
 Example, a picture size of 200x100, at the output we get resized.jpg a scaled image(400x200):
 ```bash
