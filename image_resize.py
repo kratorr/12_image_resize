@@ -14,30 +14,47 @@ def create_parser():
 
 
 def resize_image_scale(image, scale):
-    new_size = tuple(map(lambda size: int(size*scale), image.size))
-    return image.resize(new_size), new_size
+    new_size = tuple(map(lambda size: int(size * scale), image.size))
+    return image.resize(new_size)
 
 
-def resize_image_with_one_side(image, **kwargs):
+def resize_image_with_one_side(image, size_dict):
     image_width, image_height = image.size
-    if kwargs.get("width"):
-        new_width = kwargs["width"]
+    if size_dict.get("width"):
+        new_width = size_dict["width"]
         coefficient = (new_width / image_width)
     else:
-        new_height = kwargs["height"]
+        new_height = size_dict["height"]
         coefficient = (new_height / image_height)
-    new_size = tuple(map(lambda size: int(size*coefficient), image.size))
-    return image.resize(new_size), new_size
+    new_size = tuple(map(lambda size: int(size * coefficient), image.size))
+    return image.resize(new_size)
 
 
-def resize_image_with_two_side(image, new_width, new_height):
-    return image.resize((new_width, new_height)), (new_width, new_height)
+def resize_image_with_two_side(image, size_dict):
+    return image.resize((size_dict["width"], size_dict["height"]))
 
 
-def get_new_file_name_with_ext(input_name, size):
+def get_new_file_name_with_ext(input_name, size_dict):
     filename, file_extension = os.path.splitext(input_name)
-    print(filename, file_extension)
-    return str(filename+"__"+str(size[0])+"x"+str(size[1])+file_extension)
+    return filename + "__" + str(size_dict["width"]) + \
+           "x" + str(size_dict["height"]) + file_extension
+
+
+def get_func_to_resize(arg_namespace):
+    if arg_namespace.scale:
+        return resize_image_scale
+    elif arg_namespace.height and arg_namespace.width:
+        return resize_image_with_two_side
+    elif arg_namespace.height or arg_namespace.width:
+        return resize_image_with_one_side
+
+
+def aspect_ratio_is_saved(image, size_dict):
+    original_width, original_height = image.size
+    coefficient_width = size_dict["width"] / original_width
+    coefficient_height = size_dict["height"] / original_height
+    if coefficient_width == coefficient_height:
+        return True
 
 
 if __name__ == "__main__":
@@ -47,27 +64,18 @@ if __name__ == "__main__":
         input_image = Image.open(arg_namespace.input_file)
     except FileNotFoundError:
         exit("File not found")
-
-    if arg_namespace.scale:
-        resized_image, new_size = resize_image_scale(
-            input_image, arg_namespace.scale
-        )
-    elif arg_namespace.height and arg_namespace.width:
-        input_width, input_height = input_image.size
-        coefficient_width = arg_namespace.width / input_width
-        coefficient_height = arg_namespace.height / input_height
-        if coefficient_width != coefficient_height:
+    resize_func = get_func_to_resize(arg_namespace)
+    new_size_dict = {
+        "width": arg_namespace.width, "height": arg_namespace.height
+    }
+    if resize_func == resize_image_scale:
+        resized_image = resize_func(input_image, arg_namespace.scale)
+    elif resize_func == resize_image_with_one_side:
+        resized_image = resize_image_with_one_side(input_image, new_size_dict)
+    elif resize_func == resize_image_with_two_side:
+        resized_image = resize_image_with_two_side(input_image, new_size_dict)
+        if not aspect_ratio_is_saved(input_image, new_size_dict):
             print("Aspect ratio does not match the original image")
-        resized_image, new_size = resize_image_with_two_side(
-            input_image, arg_namespace.width, arg_namespace.height
-        )
-    elif arg_namespace.height or arg_namespace.width:
-        sizes = {"height":arg_namespace.height, "width":arg_namespace.width}
-        resized_image, new_size = resize_image_with_one_side(
-            input_image, **sizes
-        )
-    else:
-        print("Not enough arguments")
     if arg_namespace.output_file:
         try:
             resized_image.save(arg_namespace.output_file)
@@ -75,6 +83,9 @@ if __name__ == "__main__":
             exit("The file extension is not specified")
     else:
         new_file_name = str(get_new_file_name_with_ext(
-            arg_namespace.input_file, new_size)
+            arg_namespace.input_file, new_size_dict)
         )
-        resized_image.save(new_file_name, format=None)
+        resized_image.save(new_file_name)
+    resized_image.save(
+        get_new_file_name_with_ext(arg_namespace.input_file, new_size_dict)
+    )
