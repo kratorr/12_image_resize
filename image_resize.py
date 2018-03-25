@@ -13,8 +13,8 @@ def create_parser():
     return parser
 
 
-def resize_image_scale(image, scale):
-    new_size = tuple(map(lambda size: int(size * scale), image.size))
+def resize_image_scale(image, size_dict):
+    new_size = tuple(map(lambda size: int(size * size_dict["scale"]), image.size))
     return image.resize(new_size)
 
 
@@ -34,10 +34,13 @@ def resize_image_with_two_side(image, size_dict):
     return image.resize((size_dict["width"], size_dict["height"]))
 
 
-def get_new_file_name_with_ext(input_name, size_dict):
-    filename, file_extension = os.path.splitext(input_name)
-    return filename + "__" + str(size_dict["width"]) + \
-           "x" + str(size_dict["height"]) + file_extension
+def get_new_file_name_with_ext(arg_namespace, size_dict):
+    if arg_namespace.output_file:
+        return arg_namespace.output_file
+    else:
+        filename, file_extension = os.path.splitext(arg_namespace.input_file)
+        return filename + "__" + str(size_dict["width"]) + \
+               "x" + str(size_dict["height"]) + file_extension
 
 
 def get_func_to_resize(arg_namespace):
@@ -66,26 +69,15 @@ if __name__ == "__main__":
         exit("File not found")
     resize_func = get_func_to_resize(arg_namespace)
     new_size_dict = {
-        "width": arg_namespace.width, "height": arg_namespace.height
+        "width": arg_namespace.width,
+        "height": arg_namespace.height,
+        "scale": arg_namespace.scale
     }
-    if resize_func == resize_image_scale:
-        resized_image = resize_func(input_image, arg_namespace.scale)
-    elif resize_func == resize_image_with_one_side:
-        resized_image = resize_image_with_one_side(input_image, new_size_dict)
-    elif resize_func == resize_image_with_two_side:
-        resized_image = resize_image_with_two_side(input_image, new_size_dict)
+    resize_func = get_func_to_resize(arg_namespace)
+    if resize_func == resize_image_with_two_side:
         if not aspect_ratio_is_saved(input_image, new_size_dict):
             print("Aspect ratio does not match the original image")
-    if arg_namespace.output_file:
-        try:
-            resized_image.save(arg_namespace.output_file)
-        except ValueError:
-            exit("The file extension is not specified")
-    else:
-        new_file_name = str(get_new_file_name_with_ext(
-            arg_namespace.input_file, new_size_dict)
-        )
-        resized_image.save(new_file_name)
-    resized_image.save(
-        get_new_file_name_with_ext(arg_namespace.input_file, new_size_dict)
-    )
+    resized_image = resize_func(input_image, new_size_dict)
+    resized_image.save(get_new_file_name_with_ext(arg_namespace, new_size_dict))
+
+
