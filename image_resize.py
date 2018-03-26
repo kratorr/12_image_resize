@@ -18,10 +18,10 @@ def get_new_file_name_with_ext(arg_namespace, size):
         return arg_namespace.output_file
     else:
         filename, file_extension = os.path.splitext(arg_namespace.input_file)
-        res_str = str(size[0]) + "x" + str(size[1])
-        file_name_with_ext = "{filename}__{res_str}{ext}".format(
+        file_name_with_ext = "{filename}__{width}x{height}{ext}".format(
             filename=filename,
-            res_str=res_str,
+            width=size[0],
+            height=size[1],
             ext=file_extension
         )
         return file_name_with_ext
